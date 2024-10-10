@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wind Wave Direction Data Visualization</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <header>
+        <h1>Wind Wave Direction Visualization</h1>
+    </header>
+
+    <main class="container">
+        <section id="locationInfo" class="location-info">
+            <h2>Location Information</h2>
+            <p id="latitude">Latitude: N/A</p>
+            <p id="longitude">Longitude: N/A</p>
+        </section>
+
+        <section class="charts">
+            <h2>Charts</h2>
+            <div class="chart-container">
+                <canvas id="WindWaveDirectionChart"></canvas>
+                <canvas id="WindWaveHeightChart"></canvas>
+                <canvas id="WindWavePeriodChart"></canvas>
+                <canvas id="WindWavePeakPeriodChart"></canvas>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+    </footer>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+
+</html>
