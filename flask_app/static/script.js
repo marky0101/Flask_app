@@ -1,252 +1,166 @@
-const ctxDirection = document.getElementById('WindWaveDirectionChart').getContext('2d');
-const ctxHeight = document.getElementById('WindWaveHeightChart').getContext('2d');
-const ctxPeriod = document.getElementById('WindWavePeriodChart').getContext('2d');
-const ctxPeakPeriod = document.getElementById('WindWavePeakPeriodChart').getContext('2d');
+var map = L.map('map').setView([7.077399, 125.712589], 13);
+        var currentMarker = null; // Store the currently displayed marker
 
-// Fetch data from the server
-function fetchData() {
-    return fetch('/data')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19
+        }).addTo(map);
+
+        let hourlyChart; // Store Chart.js instance
+
+        // Function to create or update a chart
+        function createOrUpdateChart(chart, ctx, labels, data, label) {
+            if (chart) {
+                chart.data.labels = labels;
+                chart.data.datasets[0].data = data;
+                chart.update();
+            } else {
+                chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: label,
+                            data: data,
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            fill: false,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { display: true }
+                        }
+                    }
+                });
             }
-            return response.json();
-        });
-}
+            return chart;
+        }
 
-// Process and display the fetched data
-function processData(data) {
-    const timestamps = data.map(entry => new Date(entry.timestamp).toLocaleString());
-    const windWaveDirections = data.map(entry => entry.wind_wave_direction);
-    const windWaveHeights = data.map(entry => entry.wind_wave_height);
-    const windWavePeriods = data.map(entry => entry.wind_wave_period);
-    const windWavePeakPeriods = data.map(entry => entry.wind_wave_peak_period);
+        // Add click event listener on the map
+        map.on('click', function(e) {
+            var lat = e.latlng.lat.toFixed(6);
+            var lng = e.latlng.lng.toFixed(6);
 
-    // Display latitude and longitude
-    const latitude = data.length > 0 ? data[0].latitude : 'N/A';
-    const longitude = data.length > 0 ? data[0].longitude : 'N/A';
-    displayLocation(latitude, longitude);
+            // Check if the current marker already exists
+            if (currentMarker) {
+                // Remove the existing marker
+                map.removeLayer(currentMarker);
+                currentMarker = null; // Reset the current marker
+                // Reset table values and location info
+                document.getElementById('windHeight').innerText = 'N/A';
+                document.getElementById('windTimestamp').innerText = 'N/A';
+                document.getElementById('windDirection').innerText = 'N/A';
+                document.getElementById('windPeriod').innerText = 'N/A';
+                document.getElementById('windPeakPeriod').innerText = 'N/A';
+                document.getElementById('locationLat').innerText = 'N/A';
+                document.getElementById('locationLng').innerText = 'N/A';
+            } else {
+                // Fetch stored swell data from the backend
+                fetch('/get-stored-data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ latitude: lat, longitude: lng })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Data received from server:', data);
 
-    // Create separate charts for each dataset
-    createDirectionChart(timestamps, windWaveDirections);
-    createHeightChart(timestamps, windWaveHeights);
-    createPeriodChart(timestamps, windWavePeriods);
-    createPeakPeriodChart(timestamps, windWavePeakPeriods);
-}
+                    if (data.success) {
+                        // Update the location information
+                        document.getElementById('locationLat').innerText = lat;
+                        document.getElementById('locationLng').innerText = lng;
 
-// Display latitude and longitude
-function displayLocation(latitude, longitude) {
-    document.getElementById('latitude').innerText = `Latitude: ${latitude}`;
-    document.getElementById('longitude').innerText = `Longitude: ${longitude}`;
+                        // Update the current swell data table
+                        document.getElementById('windHeight').innerText = data.current.wind_wave_height + ' m';
+                        document.getElementById('windTimestamp').innerText = data.current.time || 'N/A'; 
+                        document.getElementById('windDirection').innerText = data.current.wind_wave_direction || 'N/A';
+                        document.getElementById('windPeriod').innerText = data.current.wind_wave_period || 'N/A';
+                        document.getElementById('windPeakPeriod').innerText = data.current.wind_wave_peak_period || 'N/A';
+
+
+
+                        // Plot hourly swell data
+                        const hourlyCtx = document.getElementById('hourlyWindWaveChart').getContext('2d');
+                        hourlyChart = createOrUpdateChart(
+                            hourlyChart,
+                            hourlyCtx,
+                            data.hourly.time,
+                            data.hourly.wind_wave_height,
+                            'Hourly Wind Wave Height'
+                        );
+
+                        // Add marker to the clicked location
+                        currentMarker = L.marker([lat, lng]).addTo(map)
+                            .bindPopup(`Latitude: ${lat}<br> Longitude: ${lng} `)
+                            .openPopup();
+                    } else {
+                        alert('No data found for this location.');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            }
+            document.addEventListener("DOMContentLoaded", function () {
+    const toggleChartButton = document.getElementById('toggleChartButton');
+    const chartContainer = document.getElementById('chartContainer');
     
-}
+    let chartVisible = false; // Keep track of chart visibility
 
-// Create the Wind Wave Direction chart
-function createDirectionChart(timestamps, windWaveDirections) {
-    new Chart(ctxDirection, {
-        type: 'line',
-        data: {
-            labels: timestamps,
-            datasets: [{
-                label: 'Wind Wave Direction (°)',
-                data: windWaveDirections,
-                borderColor: 'rgba(75, 192, 192, 1)',
-                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                fill: true,
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Timestamp',
-                        font: {
-                            size: 12
-                        }
-                    },
-                    ticks: {
-                        font: {
-                            size: 10
-                        }
-                    }
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Wind Wave Direction (°)',
-                        font: {
-                            size: 10
-                        }
-                    },
-                    ticks: {
-                        font: {
-                            size: 10
-                        }
-                    }
-                }
-            }
+    // Function to toggle chart visibility
+    toggleChartButton.addEventListener('click', function () {
+        chartVisible = !chartVisible;
+        if (chartVisible) {
+            chartContainer.style.display = 'block';
+            toggleChartButton.textContent = 'Hide Wind Wave Data';
+        } else {
+            chartContainer.style.display = 'none';
+            toggleChartButton.textContent = 'Show Wind Wave Data';
         }
     });
-}
 
-// Create the Wind Wave Height chart
-function createHeightChart(timestamps, windWaveHeights) {
-    new Chart(ctxHeight, {
+    // Initialize Chart.js for hourly wind wave data
+    const ctx = document.getElementById('hourlyWindWaveChart').getContext('2d');
+    const hourlyWindWaveChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: timestamps,
+            labels: [], // You can add labels for timestamps here
             datasets: [{
                 label: 'Wind Wave Height (m)',
-                data: windWaveHeights,
-                borderColor: 'rgba(255, 99, 132, 1)',
-                backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                fill: true,
+                data: [], // Wind wave height data here
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 2,
+                fill: false,
             }]
         },
         options: {
-            responsive: true,
             scales: {
                 x: {
                     title: {
                         display: true,
-                        text: 'Timestamp',
-                        font: {
-                            size: 12
-                        }
-                    },
-                    ticks: {
-                        font: {
-                            size: 10
-                        }
+                        text: 'Time'
                     }
                 },
                 y: {
                     title: {
                         display: true,
-                        text: 'Wind Wave Height (m)',
-                        font: {
-                            size: 10
-                        }
-                    },
-                    ticks: {
-                        font: {
-                            size: 10
-                        }
+                        text: 'Wind Wave Height (m)'
                     }
                 }
             }
         }
     });
-}
 
-// Create the Wind Wave Period chart
-function createPeriodChart(timestamps, windWavePeriods) {
-    new Chart(ctxPeriod, {
-        type: 'line',
-        data: {
-            labels: timestamps,
-            datasets: [{
-                label: 'Wind Wave Period (s)',
-                data: windWavePeriods,
-                borderColor: 'rgba(54, 162, 235, 1)',
-                backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                fill: true,
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Timestamp',
-                        font: {
-                            size: 12
-                        }
-                    },
-                    ticks: {
-                        font: {
-                            size: 10
-                        }
-                    }
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Wind Wave Period (s)',
-                        font: {
-                            size: 10
-                        }
-                    },
-                    ticks: {
-                        font: {
-                            size: 10
-                        }
-                    }
-                }
-            }
-        }
-    });
-}
+    // Function to update the chart data with new wind wave values and timestamps
+    function updateChart(timestamps, waveHeights) {
+        hourlyWindWaveChart.data.labels = timestamps;
+        hourlyWindWaveChart.data.datasets[0].data = waveHeights;
+        hourlyWindWaveChart.update();
+    }
 
-// Create the Wind Wave Peak Period chart
-function createPeakPeriodChart(timestamps, windWavePeakPeriods) {
-    new Chart(ctxPeakPeriod, {
-        type: 'line',
-        data: {
-            labels: timestamps,
-            datasets: [{
-                label: 'Wind Wave Peak Period (s)',
-                data: windWavePeakPeriods,
-                borderColor: 'rgba(255, 206, 86, 1)',
-                backgroundColor: 'rgba(255, 206, 86, 0.2)',
-                fill: true,
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Timestamp',
-                        font: {
-                            size: 12
-                        }
-                    },
-                    ticks: {
-                        font: {
-                            size: 10
-                        }
-                    }
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Wind Wave Peak Period (s)',
-                        font: {
-                            size: 10
-                        }
-                    },
-                    ticks: {
-                        font: {
-                            size: 10
-                        }
-                    }
-                }
-            }
-        }
-    });
-}
+    // Example of how to call updateChart with sample data
+    const sampleTimestamps = ['12:00', '13:00', '14:00', '15:00'];
+    const sampleWaveHeights = [1.2, 1.5, 1.3, 1.8];
+    updateChart(sampleTimestamps, sampleWaveHeights);
+});
 
-// Main function to initiate data fetch and processing
-function init() {
-    fetchData()
-        .then(processData)
-        .catch(error => console.error('Error fetching data:', error));
-}
-
-// Execute the main function
-init();
+        });

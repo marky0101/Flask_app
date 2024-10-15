@@ -3,99 +3,93 @@ import mysql.connector
 from mysql.connector import Error
 from datetime import datetime
 
-# Define the latitude and longitude
-latitude = 54.544587
-longitude = 10.227487
-
-def fetch_data(url):
-    """Fetch data from the API."""
-    response = requests.get(url)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        print(f"Failed to retrieve data: {response.status_code}")
-        return None
-
-def create_database_connection():
-    """Create a database connection."""
-    try:
-        connection = mysql.connector.connect(
-            host='localhost',
-            user='root',
-            password='root1234',
-            database='wind_wave_direction'
-        )
-        return connection
-    except Error as e:
-        print(f"Error connecting to MySQL: {e}")
-        return None
-
-def create_table(cursor):
-    """Create the WindWaveData table if it doesn't exist."""
-    create_table_query = '''
-    CREATE TABLE IF NOT EXISTS WindWaveData (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        timestamp DATETIME,
-        wind_wave_height FLOAT,
-        wind_wave_direction FLOAT,
-        wind_wave_period FLOAT,
-        wind_wave_peak_period FLOAT,
-        latitude FLOAT NOT NULL,
-        longitude FLOAT NOT NULL
-    );
-    '''
-    cursor.execute(create_table_query)
-
-def insert_data(cursor, data):
-    """Insert data into the WindWaveData table."""
-    hourly_data = data.get('hourly', {})
-    timestamps = hourly_data.get('time', [])
-    wind_wave_heights = hourly_data.get('wind_wave_height', [])
-    wind_wave_directions = hourly_data.get('wind_wave_direction', [])
-    wind_wave_periods = hourly_data.get('wind_wave_period', [])
-    wind_wave_peak_periods = hourly_data.get('wind_wave_peak_period', [])
-
-    # Check if all lists have the same length
-    if len(timestamps) == len(wind_wave_heights) == len(wind_wave_directions) == len(wind_wave_periods) == len(wind_wave_peak_periods):
-        for i in range(len(timestamps)):
-            timestamp = datetime.strptime(timestamps[i], '%Y-%m-%dT%H:%M')  # Adjusted format
-            wind_wave_height = wind_wave_heights[i]
-            wind_wave_direction = wind_wave_directions[i]
-            wind_wave_period = wind_wave_periods[i]
-            wind_wave_peak_period = wind_wave_peak_periods[i] if wind_wave_peak_periods[i] is not None else 0.0  # Default to 0.0 if None
-
-            # Prepare and execute the insert query
-            insert_query = '''
-            INSERT INTO WindWaveData (timestamp, wind_wave_height, wind_wave_direction, wind_wave_period, wind_wave_peak_period, latitude, longitude)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-            '''
-            cursor.execute(insert_query, (timestamp, wind_wave_height, wind_wave_direction, wind_wave_period, wind_wave_peak_period, latitude, longitude))
-    else:
-        print("Error: Data lists have different lengths.")
-
-def main():
-    # Step 1: Fetch data from the API
+def get_wind_data(latitude, longitude):
     url = f'https://barmmdrr.com/connect/gmarine_api?latitude={latitude}&longitude={longitude}&hourly=wind_wave_height,wind_wave_direction,wind_wave_period,wind_wave_peak_period'
-    data = fetch_data(url)
-    
-    if data:
-        # Step 2: Connect to the database
-        connection = create_database_connection()
-        if connection:
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        data = response.json()
+        print(f"[DEBUG] API Response Data: {data}")
+
+        try:
+            connection = mysql.connector.connect(
+                host='localhost',
+                user='root',
+                password='root1234',
+                database='wind_wave_direction'
+            )
+            cursor = connection.cursor()
+
+            # Insert location if not present
+            insert_location_query = '''
+            INSERT INTO locations (latitude, longitude) VALUES (%s, %s)
+            ON DUPLICATE KEY UPDATE location_id=LAST_INSERT_ID(location_id);
+            '''
+            cursor.execute(insert_location_query, (latitude, longitude))
+
+            # Fetch the location_id
+            cursor.execute('''SELECT location_id FROM locations WHERE latitude = %s AND longitude = %s''', (latitude, longitude))
+            location_id = cursor.fetchone()
+            if location_id:
+                location_id = location_id[0]  # Extract the ID from the tuple
+            else:
+                print("[ERROR] Location ID retrieval failed after insertion.")
+                return False
+
+            # Store hourly wind wave data
+            hourly_data = data.get('hourly', {})
+            timestamps = hourly_data.get('time', [])
+            wind_heights = hourly_data.get('wind_wave_height', [])
+            wind_directions = hourly_data.get('wind_wave_direction', [])
+            wind_periods = hourly_data.get('wind_wave_period', [])
+            wind_peak_periods = hourly_data.get('wind_wave_peak_period', [])
+
+            if not timestamps or not wind_heights or not wind_directions or not wind_periods or not wind_peak_periods:
+                print("[ERROR] No hourly data found in the API response.")
+                return False
+
             try:
-                cursor = connection.cursor()
-                
-                # Step 3: Create table if not exists
-                create_table(cursor)
+                for i in range(len(timestamps)):
+                    timestamp = datetime.strptime(timestamps[i], '%Y-%m-%dT%H:%M')
+                    wind_height = wind_heights[i]
+                    wind_direction = wind_directions[i]
+                    wind_period = wind_periods[i]
+                    wind_peak_period = wind_peak_periods[i]
 
-                # Step 4: Insert data into the table
-                insert_data(cursor, data)
+                    insert_hourly_query = '''
+                    INSERT INTO hourly_wind_wave (location_id, time, wind_wave_height, wind_wave_direction, wind_wave_period, wind_wave_peak_period)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    '''
+                    cursor.execute(insert_hourly_query, (location_id, timestamp, wind_height, wind_direction, wind_period, wind_peak_period))
 
-                # Step 5: Commit changes
-                connection.commit()
-            finally:
+                print(f"[DEBUG] Successfully inserted hourly wind wave data for location ID {location_id}.")
+            except Error as e:
+                print(f"[ERROR] Error inserting hourly wind wave data: {e}")
+                return False
+            
+            # Store current swell data
+            current_height = wind_heights[0] if wind_heights else None
+            current_direction = wind_directions[0] if wind_directions else None
+            current_period = wind_periods[0] if wind_periods else None
+            current_peak_period = wind_peak_periods[0] if wind_peak_periods else None
+
+            insert_current_query = '''
+            INSERT INTO current_wind_wave (location_id, time, wind_wave_height, wind_wave_direction, wind_wave_period, wind_wave_peak_period)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            '''
+            cursor.execute(insert_current_query, (location_id, timestamps[0], current_height, current_direction, current_period, current_peak_period))
+
+            connection.commit()
+            return True  # Indicate successful operation
+
+        except Error as e:
+            print(f"[ERROR] Database error: {e}")
+            return False
+
+        finally:
+            if connection.is_connected():
                 cursor.close()
                 connection.close()
-
-if __name__ == "__main__":
-    main()
+    else:
+        print(f"[ERROR] API request failed with status: {response.status_code}")
+        return False
