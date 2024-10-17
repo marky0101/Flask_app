@@ -44,8 +44,8 @@ def get_wind_data(latitude, longitude):
             wind_periods = hourly_data.get('wind_wave_period', [])
             wind_peak_periods = hourly_data.get('wind_wave_peak_period', [])
 
-            if not timestamps or not wind_heights or not wind_directions or not wind_periods or not wind_peak_periods:
-                print("[ERROR] No hourly data found in the API response.")
+            if not timestamps or not wind_heights or not wind_directions or not wind_periods:
+                print("[ERROR] Insufficient hourly data found in the API response.")
                 return False
 
             try:
@@ -54,7 +54,11 @@ def get_wind_data(latitude, longitude):
                     wind_height = wind_heights[i]
                     wind_direction = wind_directions[i]
                     wind_period = wind_periods[i]
-                    wind_peak_period = wind_peak_periods[i]
+                    wind_peak_period = wind_peak_periods[i] if i < len(wind_peak_periods) else None
+
+                    # Replace "NA" with None
+                    if wind_peak_period == "None":
+                        wind_peak_period = None
 
                     insert_hourly_query = '''
                     INSERT INTO hourly_wind_wave (location_id, time, wind_wave_height, wind_wave_direction, wind_wave_period, wind_wave_peak_period)
@@ -67,11 +71,15 @@ def get_wind_data(latitude, longitude):
                 print(f"[ERROR] Error inserting hourly wind wave data: {e}")
                 return False
             
-            # Store current swell data
+            # Store current wind wave data
             current_height = wind_heights[0] if wind_heights else None
             current_direction = wind_directions[0] if wind_directions else None
             current_period = wind_periods[0] if wind_periods else None
             current_peak_period = wind_peak_periods[0] if wind_peak_periods else None
+
+            # Replace "NA" with None
+            if current_peak_period == "No":
+                current_peak_period = None
 
             insert_current_query = '''
             INSERT INTO current_wind_wave (location_id, time, wind_wave_height, wind_wave_direction, wind_wave_period, wind_wave_peak_period)

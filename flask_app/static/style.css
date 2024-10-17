@@ -65,3 +65,42 @@ body, html {
 button:focus {
     outline: none;
 }
+
+/* Chart container styles */
+        #chartContainer {
+            display: none; /* Hide initially */
+            position: fixed;
+            bottom: 60px; /* Adjust to sit above the button */
+            right: 10px; /* Distance from the right */
+            background: rgba(255, 255, 255, 0.714);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1000;
+            max-width: 400px; /* Max width for the chart */
+        }
+        canvas {
+            max-width: 100%; /* Ensure the canvas fits within its container */
+        }
+
+                /* Button container styles */
+                .button-container {
+                    position: fixed; /* Use fixed positioning */
+                    bottom: 10px; /* Distance from the bottom */
+                    left: 10px; /* Distance from the left */
+                    z-index: 1000; /* Ensure it appears above the map */
+                }
+                /* Data container styles */
+                .data-container {
+                    display: none; /* Initially hide the data container */
+                    position: fixed; /* Use fixed positioning */
+                    bottom: 60px; /* Adjust to sit above the button */
+                    left: 10px; /* Distance from the left */
+                    background: rgba(255, 255, 255, 0.714); /* Background styling */
+                    padding: 10px; /* Padding for aesthetics */
+                    border-radius: 5px; /* Rounded corners */
+                    z-index: 1000; /* Ensure it appears above the map */
+                    height: auto; /* Adjust height based on content */
+                    max-height: 300px; /* Max height to prevent overflow */
+                    max-width: 300px;   
+                    overflow: auto; /* Add scroll if content overflows */
+                }

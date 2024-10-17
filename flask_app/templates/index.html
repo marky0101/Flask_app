@@ -9,52 +9,66 @@
     <link rel="stylesheet" href="../static/style.css">
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* Full screen styles */
+        body, html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        #map {
+            height: 100%;
+        }
+
+    </style>
 </head>
 <body>
+        <!-- Chart Container -->
+        <div id="chartContainer">
+            <canvas id="hourlyWindWaveChart"></canvas>
+        </div>
     <!-- Map full-screen behind -->
     <div id="map"></div>
 
-    <!-- Data container floating above map -->
+    <!-- Button container -->
+    <div class="button-container">
+        <button class="btn btn-primary" id="windWaveBtn">Wind Wave</button>
+        <button class="btn btn-secondary" id="toggleChartButton">Show Wind Wave Data</button> <!-- Added toggle button -->
+    </div>
+    
+
+    <!-- Data container for wind wave data -->
     <div class="data-container">
-        <h3>Location Information</h3>
-        <div id="locationInfo" class="mb-3">
-            Latitude: <span id="locationLat">N/A</span><br>
-            Longitude: <span id="locationLng">N/A</span>
+        <button class="btn btn-danger btn-sm" id="exitBtn" style="float: right;">Close</button>
+        <h3>Wind Wave Data</h3>
+        <div>
+            <strong>Latitude:</strong> <span id="latitude">N/A</span><br>
+            <strong>Longitude:</strong> <span id="longitude">N/A</span>
         </div>
-        <h3>Current Wind Wave Data</h3>
-        <table id="WindWaveDataTable" class="table table-sm table-bordered">
-            <thead>
-                <tr>
-                    <th>Parameter</th>
-                    <th>Value</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Wind Wave Height (m)</td>
-                    <td id="windHeight">N/A</td>
-                </tr>
-                <tr>
-                    <td>Timestamp</td>
-                    <td id="windTimestamp">N/A</td>
-                </tr>
-                <tr>
-                    <td>Wind Wave Direction</td>
-                    <td id="windDirection">N/A</td>
-                </tr>
-                <tr>
-                    <td>Wind Wave Period</td>
-                    <td id="windPeriod">N/A</td>
-                </tr>
-                <tr>
-                    <td>Wind Wave Peak Period</td>
-                    <td id="windPeakPeriod">N/A</td>
-                </tr>
-            </tbody>
-        </table>
-        <div class="chart-container">
-            <h3>Hourly Wind Wave Data</h3>
-            <canvas id="hourlyWindWaveChart"></canvas>
+        <div id="windWaveDataTable" class="table-responsive mt-3">
+            <table class="table table-sm table-bordered">
+                <thead>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Height</td>
+                        <td id="windHeight">N/A</td>
+                    </tr>
+                    <tr>
+                        <td>Direction</td>
+                        <td id="windDirection">N/A</td>
+                    </tr>
+                    <tr>
+                        <td>Period</td>
+                        <td id="windPeriod">N/A</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
@@ -62,6 +76,7 @@
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script src="../static/script.js"></script>
+    <script src="../static/script.js"></script> 
+
 </body>
 </html>
