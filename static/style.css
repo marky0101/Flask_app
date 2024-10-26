@@ -1,0 +1,144 @@
+/* Full height and width map */
+#map {
+    height: 100vh;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1; /* Keeps the map below other elements */
+}
+
+/* Styling for the data/info container */
+.data-container {
+    height: 100vh;
+    width: 30%; /* Takes 30% width of the screen */
+    background-color: rgba(255, 255, 255, 0.8); /* White with transparency */
+    z-index: 2; /* Keeps the info box above the map */
+    position: relative;
+    right: 0;
+    top: 0;
+    padding: 20px;
+    overflow-y: auto;
+    box-shadow: -2px 0px 10px rgba(0, 0, 0, 0.2); /* Adds a shadow effect */
+}
+
+/* Adjust the text and table layout */
+h3 {
+    font-size: 1.2rem;
+    color: #333;
+}
+
+table {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+table th, table td {
+    padding: 10px;
+    text-align: left;
+}
+
+.chart-container {
+    margin-top: 20px;
+}
+
+body, html {
+    height: 100%;
+    margin: 0;
+    font-family: Arial, sans-serif;
+}
+
+/* Style for buttons or icons similar to Zoom Earth */
+.button {
+    background-color: rgba(255, 255, 255, 0.7);
+    border: none;
+    padding: 10px;
+    margin: 10px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.button:hover {
+    background-color: rgba(255, 255, 255, 1);
+}
+
+button:focus {
+    outline: none;
+}
+
+/* Chart container styles */
+        #chartContainer {
+            display: none; /* Hide initially */
+            position: fixed;
+            bottom: 60px; /* Adjust to sit above the button */
+            right: 10px; /* Distance from the right */
+            background: rgba(255, 255, 255, 0.714);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1000;
+            max-width: 400px; /* Max width for the chart */
+        }
+        canvas {
+            max-width: 100%; /* Ensure the canvas fits within its container */
+        }
+        
+
+                /* Button container styles */
+                .button-container {
+                    position: fixed; /* Use fixed positioning */
+                    bottom: 10px; /* Distance from the bottom */
+                    left: 10px; /* Distance from the left */
+                    z-index: 1000; /* Ensure it appears above the map */
+                }
+                /* Data container styles */
+                .data-container {
+                    display: none; /* Initially hide the data container */
+                    position: fixed; /* Use fixed positioning */
+                    bottom: 60px; /* Adjust to sit above the button */
+                    left: 10px; /* Distance from the left */
+                    background: rgba(255, 255, 255, 0.714); /* Background styling */
+                    padding: 10px; /* Padding for aesthetics */
+                    border-radius: 5px; /* Rounded corners */
+                    z-index: 1000; /* Ensure it appears above the map */
+                    height: auto; /* Adjust height based on content */
+                    max-height: 300px; /* Max height to prevent overflow */
+                    max-width: 300px;   
+                    overflow: auto; /* Add scroll if content overflows */
+                }
+
+/* Custom style for Leaflet layer control button */
+.leaflet-control-layers {
+    background-color: #021c37; /* Primary button color */
+    color: white;
+    font-weight: bold;
+    border-radius: 4px;
+    box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.leaflet-control-layers-toggle {
+    width: 40px;
+    height: 40px;
+    background-image: none;
+    background-color: #001f41;
+    border-radius: 4px;
+    color: white;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    text-transform: uppercase;
+}
+
+.leaflet-control-layers-list {
+    background-color: #ffffff;
+    border-radius: 4px;
+    padding: 10px;
+}
+
+.leaflet-control-layers-base label {
+    color: #333;
+    font-weight: 500;
+    cursor: pointer;
+}
+

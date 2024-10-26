@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+	<title>Leaflet.Rainviewer - DEMO</title>
+
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css"
+		integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+		crossorigin="" />
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/leaflet.rainviewer.css') }}">
+	<script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"
+		integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og=="
+		crossorigin=""></script>
+	<script src="{{ url_for('static', filename='js/leaflet.rainviewer.js')}}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+
+<body style="padding:0; margin:0">
+    <div id="mapid" style="width: 100%; height: 100vh; padding:0"></div>
+
+    <!-- <div id="sign-in-container">
+        <div class="sign-in">
+            <h2>Sign In</h2>
+            <form id="sign-in-form">
+                <div>
+                    <label for="sign-in-email">Email:</label>
+                    <input type="email" id="sign-in-email" name="sign-in-email" required>
+                </div>
+                <div>
+                    <label for="sign-in-password">Password:</label>
+                    <input type="password" id="sign-in-password" name="sign-in-password" required>
+                </div>
+                <div>
+                    <button type="submit">Sign In</button>
+                </div>
+            </form>
+        </div> -->
+        
+	<script>
+        var basicBeachIcon = L.icon({
+                iconUrl: 'https://developers.google.com/maps/documentation/javascript/examples/full/images/beachflag.png',
+                iconSize: [25, 25], // size of the icon
+        });
+		var mymap = L.map('mapid').setView([12.8797, 121.7740], 6)
+
+		// create the tile layer with correct attribution
+		var osmUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+		var osmAttrib = 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors';
+		var osm = new L.TileLayer(osmUrl, {
+			minZoom: 6,
+			maxZoom: 12,
+			attribution: osmAttrib
+		});
+		mymap.addLayer(osm);
+        var osmHOT = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors, Tiles style by Humanitarian OpenStreetMap Team hosted by OpenStreetMap France'});
+                var baseMaps = {
+                    "OpenStreetMap": osm,
+                    "OpenStreetMap.HOT": osmHOT
+                };
+
+         
+                var layerControl = L.control.layers().addTo(mymap);
+
+                var openTopoMap = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: 'Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA)'
+                });
+
+                layerControl.addBaseLayer(openTopoMap, "OpenTopoMap");
+                            
+    
+        // Function to handle map clicks
+        function onMapClick(e) {
+        const latlng = e.latlng; // Get the latitude and longitude from the click event
+        console.log(latlng); // Log the latitude and longitude of the click
+        // Function to extract digits from strings
+        const extractNumber = (str) => {
+            if (str && typeof str === 'string') {
+                let numStr = '';  // Initialize an empty string to store the numbers
+                for (let i = 0; i < str.length; i++) {
+                    // Check if character is a digit, period (for decimals), or minus (for negative numbers)
+                    if (!isNaN(str[i]) || str[i] === '.' || str[i] === '-') {
+                        numStr += str[i];
+                    }
+                }
+                return parseFloat(numStr) || 0;  // Return the number or 0 if none found
+            } else {
+                return 0;  // Return 0 if str is undefined or not a string
+            }
+        };
+
+    fetch('/get_lat_and_long', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            latitude: latlng.lat,
+            longitude: latlng.lng
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Log the data for debugging purposes
+        console.log('Fetched data:', data);
+
+        // Use the extractNumber function to safely pull numeric values
+        const temperature = extractNumber(data.result.temperature);   // Extract number from "81°"
+        const feelsLike = extractNumber(data.result.feels_like);      // Extract number from "75°"
+        const windSpeed = extractNumber(data.result.wind);            // Extract number from "NNE 5 mph"
+        const humidity = extractNumber(data.result.humidity);         // Extract number from "81%"
+        const uvIndex = extractNumber(data.result.uv_index);          // Extract number from "5 of 11"
+
+        // Log the extracted numbers for debugging
+        console.log(temperature, feelsLike, windSpeed, humidity, uvIndex);
+
+        const weatherHTML = `
+        <h2>Weather Report for ${data.result.location}</h2>
+        <canvas id="weatherChart" width="400" height="200"></canvas>  <!-- Canvas for the chart -->
+        <p>Temperature: ${data.result.temperature} 🌡️</p>
+        <p>Condition: ${data.result.condition} ☁️</p>
+        <p>Feels Like: ${data.result.feels_like} ☀️</p>
+        <p>Wind: ${data.result.wind} 💨</p>
+        <p>Humidity: ${data.result.humidity} 💧</p>
+        <p>UV Index: ${data.result.uv_index} 🌞</p>
+        <p>Cloud Cover: ${data.result.cloud_cover} ☁️</p>
+        <p>Rain Amount: ${data.result.rain_amount} 🌧️</p>
+        <a target="_blank" href="https://www.google.com/maps?q=loc:${latlng.lat},${latlng.lng}&z=15&t=m">Get Directions or Nearby</a>
+    `;
+
+
+    const marker4 = L.marker([latlng.lat, latlng.lng], { icon: basicBeachIcon })
+        .bindPopup(weatherHTML)
+        .addTo(mymap);
+
+    // Destroy any existing chart with the same canvas ID
+    let existingChart = Chart.getChart('weatherChart'); // This will get the chart instance
+    if (existingChart) {
+        existingChart.destroy();  // Destroy it before creating a new one
+    }
+
+    marker4.on('popupopen', function() {
+        const ctx = document.getElementById('weatherChart').getContext('2d');
+
+        const chart = new Chart(ctx, {
+            type: 'bar',  // Bar chart type
+            data: {
+                labels: ['Temperature', 'Feels Like', 'Wind Speed', 'Humidity', 'UV Index'],
+                datasets: [{
+                    label: 'Weather Metrics',
+                    data: [
+                        temperature,   // Extracted temperature value
+                        feelsLike,    // Extracted feels like temperature
+                        windSpeed,    // Extracted wind speed
+                        humidity,     // Extracted humidity percentage
+                        uvIndex       // Extracted UV index
+                    ],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',  // Red
+                        'rgba(54, 162, 235, 0.2)',  // Blue
+                        'rgba(255, 206, 86, 0.2)',  // Yellow
+                        'rgba(75, 192, 192, 0.2)',  // Green
+                        'rgba(153, 102, 255, 0.2)'  // Purple
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    });
+
+    marker4.openPopup();
+})
+.catch(error => {
+    console.error('Error:', error);  // Log any errors
+});
+
+        }
+
+        // Add the click event listener to the map
+        mymap.on('click', onMapClick);
+
+  
+
+		var rainviewer = L.control.rainviewer({
+			position: 'bottomleft',
+			nextButtonText: '>',
+			playStopButtonText: 'Start/Stop',
+			prevButtonText: '<',
+			positionSliderLabelText: "Time:",
+			opacitySliderLabelText: "Opacity:",
+			animationInterval: 500,
+			opacity: 0.5
+		});
+		rainviewer.addTo(mymap);
+	</script>
+
+</body>
+
+</html>
